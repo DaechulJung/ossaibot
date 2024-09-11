@@ -1,0 +1,19 @@
+apiVersion : apps/v1
+kind: Deployment
+metadata:
+  name: ossaibot 
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ossaibot
+  template:
+    metadata:
+      labels:
+        app: ossaibot 
+    spec:
+      containers:
+        - name: ossaibot
+          image: oss7aiacr.azurecr.io/ossaibot
+          ports:
+          - containerPort: 8080

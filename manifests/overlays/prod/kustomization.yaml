@@ -1,0 +1,16 @@
+configMapGenerator:
+- files:
+  - application.yml
+  name: ossaibot-configmap
+
+resources:
+- ../../base
+
+patchesStrategicMerge:
+- deployment.yaml
+- ingress.yaml
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namePrefix: prod-
+images:

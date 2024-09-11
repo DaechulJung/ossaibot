@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ossaibot 
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: ossaibot 
+          command: ["streamlit", "run", "app.py", "--server.port=8080", "--server.address=0.0.0.0"]
+          volumeMounts:
+          - mountPath: /config
+            name: application-properties
+            readOnly: true
+                          
+      volumes:
+      - name: application-properties
+        configMap:
+          name: ossaibot-configmap
+          items:
+            - key: application.yml
+              path: application.yml
+          defaultMode: 420

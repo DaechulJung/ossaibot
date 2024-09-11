@@ -1,0 +1,71 @@
+name: Python CI
+
+on: workflow_dispatch
+
+env:
+  IMAGE_NAME: ossaibot
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.REPO_TOKEN }}
+        
+    # Set up Python 3.12 environment
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.12'
+  
+      # Install dependencies
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Setup Kustomize
+      uses: imranismail/setup-kustomize@v1
+
+    - name: 'Gen Version'
+      id: gen-version
+      run: |
+        echo "::set-output name=VERSION::`date +%Y%m%d%H%M`"
+        
+    - name: 'ACR login'
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ secrets.BASEACR_LOGIN_SERVER }}
+        username: ${{ secrets.BASEACR_REGISTRY_USERNAME }}
+        password: ${{ secrets.BASEACR_REGISTRY_PASSWORD }}
+
+    - name: 'Build & Tag Image'
+      run: |
+            docker build -t ${{ secrets.BASEACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ steps.gen-version.outputs.VERSION }} -f Dockerfile-maven .
+            docker tag ${{ secrets.BASEACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ steps.gen-version.outputs.VERSION }} ${{ secrets.APPACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ steps.gen-version.outputs.VERSION }}
+
+    - name: 'Push image'
+      uses: azure/docker-login@v1
+      with:
+        login-server: ${{ secrets.APPACR_LOGIN_SERVER }}
+        username: ${{ secrets.CICD_REGISTRY_USERNAME }}
+        password: ${{ secrets.CICD_REGISTRY_PASSWORD }}
+    
+    - run: |
+          docker push ${{ secrets.APPACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ steps.gen-version.outputs.VERSION }}
+
+    - name: Update Kubernetes resources
+      run: |
+          cd manifests/overlays/prod
+          kustomize edit set image ${{ secrets.APPACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ steps.gen-version.outputs.VERSION }}
+          cat kustomization.yaml
+
+    - name: Commit files
+      run: |
+          cd manifests
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "github-actions"
+          git commit -am "Update image tag"
+          git push -u origin main
