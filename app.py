@@ -26,7 +26,7 @@ def generate_response(prompt):
     #     temperature=0.7,
     # )
     # message = response.choices[0].text.strip()
-    message = "test message 777 hello worlddd"
+    message = "hello world"
     return message
 
 # 사용자 입력
