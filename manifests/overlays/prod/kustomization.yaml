@@ -15,3 +15,4 @@ kind: Kustomization
 namePrefix: prod-
 images:
 - name: oss7aiacr.azurecr.io/ossaibot
+  newTag: "202409130234"
